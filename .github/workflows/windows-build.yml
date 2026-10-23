@@ -85,6 +85,27 @@ jobs:
         working-directory: build
         run: cmake --build . --config Release
 
+      # create-installer.py looks for Qt DLLs in "qtbase/bin" and "qtbase/plugins"
+      # (the layout of a Qt *build* folder). We delete build folders to keep the
+      # cache small, so copy the DLLs from the installed Qt package into a
+      # folder with that layout, which the script also scans.
+      - name: Prepare Qt files for the installer
+        run: |
+          $conan = Join-Path $HOME ".conan2\p"
+          $qtDirs = Get-ChildItem $conan -Directory -Filter "qt*"
+          $core = $qtDirs | ForEach-Object { Get-ChildItem $_.FullName -Recurse -Filter Qt6Core.dll -ErrorAction SilentlyContinue } | Select-Object -First 1
+          if (-not $core) { throw "Qt6Core.dll not found in the Conan cache" }
+          $qwin = $qtDirs | ForEach-Object { Get-ChildItem $_.FullName -Recurse -Filter qwindows.dll -ErrorAction SilentlyContinue } | Select-Object -First 1
+          if (-not $qwin) { throw "qwindows.dll (Qt platform plugin) not found in the Conan cache" }
+          $stage = Join-Path $HOME ".conan2\qt-stage\qtbase"
+          New-Item -ItemType Directory -Force "$stage\bin", "$stage\plugins" | Out-Null
+          Copy-Item "$($core.DirectoryName)\*.dll" "$stage\bin"
+          Copy-Item "$($qwin.Directory.Parent.FullName)\*" "$stage\plugins" -Recurse
+          Write-Host "Qt bin:     $($core.DirectoryName)"
+          Write-Host "Qt plugins: $($qwin.Directory.Parent.FullName)"
+          Write-Host "Staged DLLs:"
+          Get-ChildItem $stage -Recurse -Filter *.dll | ForEach-Object { $_.FullName.Substring($stage.Length) }
+
       - name: Build Windows installer
         working-directory: build
         run: cmake --build . --config Release --target build-installer
