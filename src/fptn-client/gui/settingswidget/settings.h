@@ -69,6 +69,8 @@ class SettingsWidget : public QDialog {
   QLabel* autostart_label_ = nullptr;
   QCheckBox* autostart_checkbox_ = nullptr;
 #endif
+  QLabel* auto_connect_label_ = nullptr;
+  QCheckBox* auto_connect_checkbox_ = nullptr;
   QLabel* language_label_ = nullptr;
   QComboBox* language_combo_box_ = nullptr;
 

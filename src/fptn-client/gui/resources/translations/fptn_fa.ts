@@ -212,6 +212,10 @@
             <translation>شروع خودکار</translation>
         </message>
         <message>
+            <source>Auto-connect on startup (Smart Connect)</source>
+            <translation>اتصال خودکار هنگام راه‌اندازی (اتصال هوشمند)</translation>
+        </message>
+        <message>
             <source>Auto</source>
             <translation>خودکار</translation>
         </message>

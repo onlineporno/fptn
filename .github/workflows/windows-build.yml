@@ -1,0 +1,93 @@
+name: Windows installer (manual build)
+
+# Manual build of the Windows installer on GitHub-hosted runners.
+# Run it from the "Actions" tab -> "Windows installer (manual build)" -> "Run workflow".
+# The finished installer is attached to the run as an artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to embed in the build (use the version you have installed, e.g. 0.4.6)"
+        required: true
+        default: "0.4.6"
+
+jobs:
+  build_windows:
+    runs-on: windows-2022
+    timeout-minutes: 360
+    env:
+      FPTN_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Python packages
+        run: pip install requests conan==2.15.1 numpy
+
+      - name: Install Inno Setup and NASM
+        run: choco install innosetup nasm -y --no-progress
+
+      - name: Add NASM and Windows SDK tools to PATH
+        run: |
+          "C:\Program Files\NASM" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          $bin = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Directory |
+            Where-Object { Test-Path "$($_.FullName)\x64\mt.exe" } |
+            Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $bin) { throw "mt.exe (Windows SDK) not found" }
+          "$($bin.FullName)\x64" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
+      - name: Detect Conan profile
+        run: conan profile detect --force
+
+      # Qt is built from source by Conan on the first run (this takes hours).
+      # The result is cached, so later runs are much faster.
+      - name: Restore Conan cache
+        id: conan-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.conan2/p
+          key: conan-windows-${{ hashFiles('conanfile.py') }}
+          restore-keys: conan-windows-
+
+      - name: Install dependencies (Conan)
+        run: conan install . --output-folder=build --build=missing -o with_gui_client=True --settings build_type=Release -s compiler.cppstd=17
+
+      - name: Shrink and save Conan cache
+        if: always() && steps.conan-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: |
+          conan cache clean "*" --source --build --download
+          echo "cache cleaned"
+
+      - name: Save Conan cache
+        if: always() && steps.conan-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.conan2/p
+          key: conan-windows-${{ hashFiles('conanfile.py') }}
+
+      - name: Configure
+        working-directory: build
+        run: cmake .. -G "Visual Studio 17 2022" -DCMAKE_TOOLCHAIN_FILE="conan_toolchain.cmake" -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        working-directory: build
+        run: cmake --build . --config Release
+
+      - name: Build Windows installer
+        working-directory: build
+        run: cmake --build . --config Release --target build-installer
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: FptnClientInstaller
+          path: FptnClientInstaller-*.exe
+          if-no-files-found: error

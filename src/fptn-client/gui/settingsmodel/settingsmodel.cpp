@@ -210,6 +210,7 @@ SettingsModel::SettingsModel(const QMap<QString, QString>& languages,
       enable_advanced_dns_management_(false),
 #endif
       client_autostart_(false),
+      auto_connect_on_startup_(false),
       enable_ad_block_(true),
       blacklist_domains_(FPTN_CLIENT_DEFAULT_BLACKLIST_DOMAINS),
       enable_split_tunnel_(true),
@@ -337,6 +338,9 @@ void SettingsModel::Load(bool dont_load_server) {
   }
   if (service_obj.contains("autostart")) {
     client_autostart_ = service_obj["autostart"].toBool();
+  }
+  if (service_obj.contains("auto_connect_on_startup")) {
+    auto_connect_on_startup_ = service_obj["auto_connect_on_startup"].toBool();
   }
 
 #if _WIN32
@@ -544,6 +548,7 @@ bool SettingsModel::Save() {
   json_object["network_interface"] = network_interface_;
   json_object["gateway_ip"] = gateway_ip_;
   json_object["autostart"] = client_autostart_ ? 1 : 0;
+  json_object["auto_connect_on_startup"] = auto_connect_on_startup_;
   json_object["sni"] = sni_;
   json_object["bypass_method"] = bypass_method_;
   json_object["connection_strategy"] = connection_strategy_;
@@ -653,6 +658,15 @@ bool SettingsModel::Autostart() const { return client_autostart_; }
 
 void SettingsModel::SetAutostart(bool value) {
   client_autostart_ = value;
+  Save();
+}
+
+bool SettingsModel::AutoConnectOnStartup() const {
+  return auto_connect_on_startup_;
+}
+
+void SettingsModel::SetAutoConnectOnStartup(bool value) {
+  auto_connect_on_startup_ = value;
   Save();
 }
 

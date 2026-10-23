@@ -212,6 +212,10 @@
             <translation>Autostart</translation>
         </message>
         <message>
+            <source>Auto-connect on startup (Smart Connect)</source>
+            <translation>Auto-connect on startup (Smart Connect)</translation>
+        </message>
+        <message>
             <source>Auto</source>
             <translation>Auto</translation>
         </message>

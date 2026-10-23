@@ -212,6 +212,10 @@
             <translation>Автостарт</translation>
         </message>
         <message>
+            <source>Auto-connect on startup (Smart Connect)</source>
+            <translation>Автоподключение при запуске (умное подключение)</translation>
+        </message>
+        <message>
             <source>Auto</source>
             <translation>Автоматически</translation>
         </message>

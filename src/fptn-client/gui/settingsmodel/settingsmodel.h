@@ -209,6 +209,9 @@ class SettingsModel : public QObject {
   bool Autostart() const;
   void SetAutostart(bool value);
 
+  bool AutoConnectOnStartup() const;
+  void SetAutoConnectOnStartup(bool value);
+
   QString GetSettingsFilePath() const;
   QString GetSettingsFolderPath() const;
 
@@ -278,6 +281,7 @@ class SettingsModel : public QObject {
   bool enable_advanced_dns_management_;
 #endif
   bool client_autostart_;
+  bool auto_connect_on_startup_;
 
   QString bypass_method_;
   QString connection_strategy_;

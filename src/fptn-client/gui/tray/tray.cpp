@@ -6,6 +6,7 @@ Distributed under the MIT License (https://opensource.org/licenses/MIT)
 
 #include "gui/tray/tray.h"
 
+#include <algorithm>
 #include <memory>
 #include <numeric>
 #include <string>
@@ -275,6 +276,24 @@ TrayApp::TrayApp(const SettingsModelPtr& settings, QObject* parent)
   ping_update_timer_ = new QTimer(this);
   connect(ping_update_timer_, &QTimer::timeout, [this]() { UpdatePings(); });
   ping_update_timer_->start(1000);
+
+  // Auto-connect on startup using Smart Connect (same path as the menu item).
+  // Deferred until the event loop is running.
+  if (settings_->AutoConnectOnStartup()) {
+    QTimer::singleShot(0, this, [this]() {
+      const auto& services = settings_->Services();
+      const bool has_servers = std::any_of(
+          services.begin(), services.end(),
+          [](const auto& service) { return !service.servers.empty(); });
+      if (!has_servers) {
+        SPDLOG_WARN("Auto-connect on startup skipped: no servers configured");
+        return;
+      }
+      SPDLOG_INFO("Auto-connect on startup: Smart Connect");
+      smart_connect_ = true;
+      onConnectToServer();
+    });
+  }
 }
 
 void TrayApp::CheckForUpdatesAsync() {
