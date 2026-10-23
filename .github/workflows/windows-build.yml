@@ -28,7 +28,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install Python packages
-        run: pip install requests conan==2.15.1 numpy
+        run: pip install requests numpy "conan>=2.15.1,<3"
 
       - name: Install Inno Setup and NASM
         run: choco install innosetup nasm -y --no-progress
@@ -45,6 +45,10 @@ jobs:
       - name: Detect Conan profile
         run: conan profile detect --force
 
+      - name: Show Conan version and unzip code (diagnostics)
+        continue-on-error: true
+        run: python -c "import inspect, conan; import conan.tools.files.files as f; print('conan', conan.__version__); print(inspect.getsource(f.unzip))"
+
       # Qt is built from source by Conan on the first run (this takes hours).
       # The result is cached, so later runs are much faster.
       - name: Restore Conan cache
@@ -52,26 +56,26 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ~/.conan2/p
-          key: conan-windows-${{ hashFiles('conanfile.py') }}
+          key: conan-windows-${{ hashFiles('conanfile.py') }}-${{ github.run_id }}
           restore-keys: conan-windows-
 
       - name: Install dependencies (Conan)
         run: conan install . --output-folder=build --build=missing -o with_gui_client=True --settings build_type=Release -s compiler.cppstd=17
 
       - name: Shrink and save Conan cache
-        if: always() && steps.conan-cache.outputs.cache-hit != 'true'
+        if: always()
         continue-on-error: true
         run: |
           conan cache clean "*" --source --build --download
           echo "cache cleaned"
 
       - name: Save Conan cache
-        if: always() && steps.conan-cache.outputs.cache-hit != 'true'
+        if: always()
         continue-on-error: true
         uses: actions/cache/save@v4
         with:
           path: ~/.conan2/p
-          key: conan-windows-${{ hashFiles('conanfile.py') }}
+          key: conan-windows-${{ hashFiles('conanfile.py') }}-${{ github.run_id }}
 
       - name: Configure
         working-directory: build
