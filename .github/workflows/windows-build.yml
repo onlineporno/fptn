@@ -92,7 +92,10 @@ jobs:
       - name: Prepare Qt files for the installer
         run: |
           $conan = Join-Path $HOME ".conan2\p"
-          $qtDirs = Get-ChildItem $conan -Directory -Filter "qt*"
+          # packages live in p\b\<name><hash>\p, recipes in p\<name><hash>
+          $qtDirs = Get-ChildItem $conan -Recurse -Depth 1 -Directory -Filter "qt*"
+          Write-Host "Qt folders in Conan cache:"
+          $qtDirs | ForEach-Object { Write-Host "  $($_.FullName)" }
           $core = $qtDirs | ForEach-Object { Get-ChildItem $_.FullName -Recurse -Filter Qt6Core.dll -ErrorAction SilentlyContinue } | Select-Object -First 1
           if (-not $core) { throw "Qt6Core.dll not found in the Conan cache" }
           $qwin = $qtDirs | ForEach-Object { Get-ChildItem $_.FullName -Recurse -Filter qwindows.dll -ErrorAction SilentlyContinue } | Select-Object -First 1
