@@ -224,8 +224,21 @@ TrayApp::TrayApp(const SettingsModelPtr& settings, QObject* parent)
 #endif
   connect(quit_action_, &QAction::triggered, this, &QCoreApplication::quit);
 
+  // Smart Connect: first item of the tray menu, shown only when disconnected
+  top_smart_connect_action_ =
+      new QAction(QObject::tr("Smart Connect"), this);
+#ifndef __APPLE__
+  top_smart_connect_action_->setIcon(QIcon(":/icons/ping_green_circle.png"));
+#endif
+  top_smart_connect_action_->setVisible(false);
+  connect(top_smart_connect_action_, &QAction::triggered, this, [this]() {
+    smart_connect_ = true;
+    onConnectToServer();
+  });
+
   // Show menu
   // tray_menu_->addAction(connecting_action_);
+  tray_menu_->addAction(top_smart_connect_action_);
   tray_menu_->addAction(disconnect_action_);
   tray_menu_->addAction(connecting_label_action_);
   tray_menu_->addAction(disconnecting_label_action_);
@@ -353,6 +366,9 @@ void TrayApp::UpdateTrayMenu() {
   if (reconnecting_label_action_) {
     reconnecting_label_action_->setVisible(false);
   }
+  if (top_smart_connect_action_) {  // shown only when disconnected (see below)
+    top_smart_connect_action_->setVisible(false);
+  }
 
   switch (connection_state_) {
     case ConnectionState::None: {
@@ -365,6 +381,10 @@ void TrayApp::UpdateTrayMenu() {
               [](std::size_t sum, const auto& service) {
                 return sum + service.servers.size();
               });
+
+      if (top_smart_connect_action_) {
+        top_smart_connect_action_->setVisible(0 != servers_number);
+      }
 
       if (0 != servers_number) {
         smart_connect_action_ =
@@ -775,6 +795,9 @@ void TrayApp::RetranslateUi() {
   }
   if (smart_connect_action_) {
     smart_connect_action_->setText(QObject::tr("Smart Connect"));
+  }
+  if (top_smart_connect_action_) {
+    top_smart_connect_action_->setText(QObject::tr("Smart Connect"));
   }
   if (limited_zone_connect_menu_) {
     limited_zone_connect_menu_->setTitle(
